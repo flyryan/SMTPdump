@@ -45,18 +45,38 @@ sudo systemctl enable smtp-dumper
 sudo systemctl start smtp-dumper
 ```
 
-## Usage
+## Testing
 
-The server will:
-- Listen for incoming SMTP connections
-- Save any email attachments to the specified directory
-- Add timestamps to filenames to prevent conflicts
-- Log all activity and errors
+### Local Development Testing
 
-### Manual Testing
+1. Update CONFIG in smtp_dumper.py to use local directories:
+```python
+CONFIG = {
+    'host': 'localhost',
+    'port': 8025,
+    'attachment_dir': './attachments',
+    'log_dir': './logs'
+}
+```
 
-You can test locally using Python's built-in SMTP client:
+2. Start the server:
+```bash
+python3 smtp_dumper.py
+```
 
+You should see:
+```
+Started SMTP server on localhost:8025
+Saving attachments to /path/to/attachments
+Logs available at /path/to/logs
+```
+
+3. In another terminal, create a test file:
+```bash
+echo "Test content" > test.txt
+```
+
+4. Send a test email with the test.txt attachment:
 ```python
 import smtplib
 from email.mime.text import MIMEText
@@ -73,14 +93,47 @@ msg['To'] = 'recipient@example.com'
 msg.attach(MIMEText('Test email body'))
 
 # Add file attachment
-with open('test.pdf', 'rb') as f:
-    attachment = MIMEApplication(f.read(), _subtype='pdf')
-    attachment.add_header('Content-Disposition', 'attachment', filename='test.pdf')
+with open('test.txt', 'rb') as f:
+    attachment = MIMEApplication(f.read())
+    attachment.add_header('Content-Disposition', 'attachment', filename='test.txt')
     msg.attach(attachment)
 
 # Send email
 with smtplib.SMTP('localhost', 8025) as smtp:
     smtp.send_message(msg)
+    print("Test email sent successfully!")
+```
+
+5. Verify the attachment was saved:
+```bash
+ls -l attachments/
+```
+
+You should see your test.txt file saved with a timestamp prefix, e.g.:
+`20250205_151118_test.txt`
+
+### Production Testing
+
+1. After deploying to RedHat server, verify the service is running:
+```bash
+sudo systemctl status smtp-dumper
+```
+
+2. Check logs for successful startup:
+```bash
+sudo tail -f /var/smtp-dumper/logs/smtp_dumper.log
+```
+
+3. Send a test email to the server's IP address on port 25 (or configured port)
+
+4. Verify attachment was saved:
+```bash
+ls -l /var/smtp-dumper/attachments/
+```
+
+5. Monitor logs for any errors:
+```bash
+sudo tail -f /var/smtp-dumper/logs/smtp_dumper.log
 ```
 
 ## Monitoring
@@ -93,10 +146,18 @@ with smtplib.SMTP('localhost', 8025) as smtp:
 
 1. If service fails to start:
    - Check logs: `journalctl -u smtp-dumper`
-   - Verify permissions
+   - Verify permissions on directories
    - Ensure port is available
+   - Check Python dependencies are installed
 
 2. If attachments aren't saving:
    - Check directory permissions
    - Verify enough disk space
-   - Review logs for errors
+   - Review logs for specific errors
+   - Ensure email contains proper attachments
+
+3. Common Issues:
+   - Port already in use: Change port in CONFIG or stop conflicting service
+   - Permission denied: Check directory and file ownership
+   - Missing attachments: Verify email is properly formatted with attachments
+   - Connection refused: Check firewall settings and port availability
