@@ -75,7 +75,7 @@ class AttachmentHandler:
             logger.error(f"Error processing message: {str(e)}")
             return '500 Error processing message'
 
-def run_server():
+async def run_server():
     # Create handler and controller
     handler = AttachmentHandler()
     controller = Controller(handler, hostname=CONFIG['host'], port=CONFIG['port'])
@@ -87,12 +87,9 @@ def run_server():
         logger.info(f"Saving attachments to {os.path.abspath(CONFIG['attachment_dir'])}")
         logger.info(f"Logs available at {os.path.abspath(CONFIG['log_dir'])}")
         
-        # Keep the server running until interrupted
-        try:
-            while True:
-                input()
-        except KeyboardInterrupt:
-            pass
+        # Keep the server running indefinitely
+        forever = asyncio.Event()
+        await forever.wait()
             
     except Exception as e:
         logger.error(f"Server error: {str(e)}")
@@ -102,4 +99,8 @@ def run_server():
         logger.info("Server stopped")
 
 if __name__ == '__main__':
-    run_server()
+    try:
+        asyncio.run(run_server())
+    except KeyboardInterrupt:
+        logger.info("Server shutdown requested")
+        sys.exit(0)
