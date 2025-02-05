@@ -1,0 +1,13 @@
+[Unit]
+Description=SMTP Attachment Dumper
+After=network.target
+
+[Service]
+Type=simple
+User=smtp-dumper
+ExecStart=/usr/bin/python3 /opt/smtp-dumper/smtp_dumper.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
