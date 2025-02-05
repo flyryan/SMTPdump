@@ -2,8 +2,8 @@
 
 # Configuration
 CONFIG = {
-    'host': 'localhost',      # Host to listen on
-    'port': 25,              # Port to listen on (default SMTP port)
+    'host': '0.0.0.0',       # Listen on all interfaces
+    'port': 2525,            # Port to listen on
     'attachment_dir': '/var/smtp-dumper/attachments',  # Directory to save attachments
     'log_dir': '/var/smtp-dumper/logs'                # Directory to save logs
 }
