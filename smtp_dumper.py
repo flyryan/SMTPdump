@@ -3,9 +3,9 @@
 # Configuration
 CONFIG = {
     'host': 'localhost',      # Host to listen on
-    'port': 8025,            # Port to listen on
-    'attachment_dir': './attachments',  # Directory to save attachments (local testing)
-    'log_dir': './logs'                # Directory to save logs (local testing)
+    'port': 25,              # Port to listen on (default SMTP port)
+    'attachment_dir': '/var/smtp-dumper/attachments',  # Directory to save attachments
+    'log_dir': '/var/smtp-dumper/logs'                # Directory to save logs
 }
 
 import asyncio
@@ -75,7 +75,7 @@ class AttachmentHandler:
             logger.error(f"Error processing message: {str(e)}")
             return '500 Error processing message'
 
-async def main():
+def run_server():
     # Create handler and controller
     handler = AttachmentHandler()
     controller = Controller(handler, hostname=CONFIG['host'], port=CONFIG['port'])
@@ -87,21 +87,19 @@ async def main():
         logger.info(f"Saving attachments to {os.path.abspath(CONFIG['attachment_dir'])}")
         logger.info(f"Logs available at {os.path.abspath(CONFIG['log_dir'])}")
         
-        # Keep the server running
-        while True:
-            await asyncio.sleep(3600)  # Sleep for an hour, then check again
+        # Keep the server running until interrupted
+        try:
+            while True:
+                input()
+        except KeyboardInterrupt:
+            pass
             
-    except KeyboardInterrupt:
-        controller.stop()
-        logger.info("Server stopped")
     except Exception as e:
         logger.error(f"Server error: {str(e)}")
-        controller.stop()
         sys.exit(1)
+    finally:
+        controller.stop()
+        logger.info("Server stopped")
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Server shutdown requested")
-        sys.exit(0)
+    run_server()
