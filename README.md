@@ -16,9 +16,9 @@ CONFIG = {
 
 ## Installation
 
-1. Install Python dependencies:
+1. Install Python dependencies system-wide (required for the service):
 ```bash
-pip3 install -r requirements.txt
+sudo python3 -m pip install aiosmtpd>=1.4.2
 ```
 
 2. Setup service (on RedHat):
@@ -39,6 +39,9 @@ sudo cp smtp-dumper.service /etc/systemd/system/
 sudo chown -R smtp-dumper:smtp-dumper /opt/smtp-dumper
 sudo chown -R smtp-dumper:smtp-dumper /var/smtp-dumper
 
+# Verify Python module is available to the service user
+sudo -u smtp-dumper python3 -c "from aiosmtpd.controller import Controller"
+
 # Enable and start service
 sudo systemctl daemon-reload
 sudo systemctl enable smtp-dumper
@@ -49,7 +52,12 @@ sudo systemctl start smtp-dumper
 
 ### Local Development Testing
 
-1. Update CONFIG in smtp_dumper.py to use local directories:
+1. Install dependencies for local testing:
+```bash
+pip3 install -r requirements.txt
+```
+
+2. Update CONFIG in smtp_dumper.py to use local directories:
 ```python
 CONFIG = {
     'host': 'localhost',
@@ -59,7 +67,7 @@ CONFIG = {
 }
 ```
 
-2. Start the server:
+3. Start the server:
 ```bash
 python3 smtp_dumper.py
 ```
@@ -71,12 +79,12 @@ Saving attachments to /path/to/attachments
 Logs available at /path/to/logs
 ```
 
-3. In another terminal, create a test file:
+4. In another terminal, create a test file:
 ```bash
 echo "Test content" > test.txt
 ```
 
-4. Send a test email with the test.txt attachment:
+5. Send a test email with the test.txt attachment:
 ```python
 import smtplib
 from email.mime.text import MIMEText
@@ -104,7 +112,7 @@ with smtplib.SMTP('localhost', 8025) as smtp:
     print("Test email sent successfully!")
 ```
 
-5. Verify the attachment was saved:
+6. Verify the attachment was saved:
 ```bash
 ls -l attachments/
 ```
@@ -114,24 +122,29 @@ You should see your test.txt file saved with a timestamp prefix, e.g.:
 
 ### Production Testing
 
-1. After deploying to RedHat server, verify the service is running:
+1. After deploying to RedHat server, verify Python module is available:
+```bash
+sudo -u smtp-dumper python3 -c "from aiosmtpd.controller import Controller"
+```
+
+2. Verify the service is running:
 ```bash
 sudo systemctl status smtp-dumper
 ```
 
-2. Check logs for successful startup:
+3. Check logs for successful startup:
 ```bash
 sudo tail -f /var/smtp-dumper/logs/smtp_dumper.log
 ```
 
-3. Send a test email to the server's IP address on port 25 (or configured port)
+4. Send a test email to the server's IP address on port 25 (or configured port)
 
-4. Verify attachment was saved:
+5. Verify attachment was saved:
 ```bash
 ls -l /var/smtp-dumper/attachments/
 ```
 
-5. Monitor logs for any errors:
+6. Monitor logs for any errors:
 ```bash
 sudo tail -f /var/smtp-dumper/logs/smtp_dumper.log
 ```
@@ -144,19 +157,24 @@ sudo tail -f /var/smtp-dumper/logs/smtp_dumper.log
 
 ## Troubleshooting
 
-1. If service fails to start:
+1. If service fails to start with "ModuleNotFoundError: No module named 'aiosmtpd'":
+   - The aiosmtpd module is not available to the service user
+   - Install it system-wide: `sudo python3 -m pip install aiosmtpd>=1.4.2`
+   - Verify installation: `sudo -u smtp-dumper python3 -c "from aiosmtpd.controller import Controller"`
+
+2. If service fails to start for other reasons:
    - Check logs: `journalctl -u smtp-dumper`
    - Verify permissions on directories
    - Ensure port is available
    - Check Python dependencies are installed
 
-2. If attachments aren't saving:
+3. If attachments aren't saving:
    - Check directory permissions
    - Verify enough disk space
    - Review logs for specific errors
    - Ensure email contains proper attachments
 
-3. Common Issues:
+4. Common Issues:
    - Port already in use: Change port in CONFIG or stop conflicting service
    - Permission denied: Check directory and file ownership
    - Missing attachments: Verify email is properly formatted with attachments
